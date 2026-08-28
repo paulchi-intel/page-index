@@ -1,0 +1,36 @@
+# Local secrets and runtime state
+config.json
+.env
+.env.*
+documents/
+logs/
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python/PyInstaller build output
+build/
+dist/
+*.egg-info/
+
+# Frontend dependencies and generated output
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Local working files
+.scratch/
+prompt_page-index.txt
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
