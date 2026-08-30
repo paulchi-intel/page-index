@@ -4,6 +4,38 @@ This workspace contains the FastAPI backend and a React 19 / TypeScript View for
 querying and indexing PDF or Markdown documents. Source documents and generated
 `*_structure.json` indexes are stored together directly under `documents/`.
 
+## Starting PageIndex
+
+PageIndex can be started in either of the following ways. Both modes provide the
+same query and indexing features, including preserving indexing progress and
+status when switching between the query and indexing pages.
+
+### Start with Python
+
+After installing the Python dependencies and building the React View, run this
+command from the repository root:
+
+```powershell
+python page_index.py
+```
+
+Then open `http://127.0.0.1:7788` in a browser. This mode uses the repository's
+`documents/` directory and local `config.json`.
+
+### Start with the Windows executable
+
+Run the portable executable directly, for example by double-clicking it in File
+Explorer or with PowerShell:
+
+```powershell
+.\release-electron\PageIndex.exe
+```
+
+No separate Python or Node.js installation is required. `PageIndex.exe` starts
+and manages its bundled backend automatically. Its document library is the
+`documents/` directory beside the executable, while configuration and logs are
+stored under `%APPDATA%\PageIndex\`.
+
 ## Development
 
 Install the Python, frontend, and Electron dependencies:

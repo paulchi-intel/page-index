@@ -51,6 +51,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
 .key-status.missing { color: var(--amber); background: #fff5e6; }
 
 .app-body { min-height: 0; display: flex; overflow: hidden; }
+.tab-panel { min-width: 0; min-height: 0; flex: 1; display: flex; overflow: hidden; }
+.tab-panel[hidden] { display: none; }
 .query-pane-layout { min-width: 0; min-height: 0; flex: 1; display: flex; overflow: hidden; }
 .query-pane-slot { min-width: 0; min-height: 0; display: flex; overflow: hidden; transition: flex-basis 220ms cubic-bezier(.2,0,0,1); }
 .documents-slot { min-width: 220px; max-width: 480px; flex: 0 1 var(--documents-pane-width, 270px); }

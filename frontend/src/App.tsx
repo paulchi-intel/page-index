@@ -70,17 +70,21 @@ export default function App() {
     </header>
 
     <div className={`app-body tab-${tab}`}>
-      {tab === 'query' && <QueryPaneLayout
-        state={paneLayout.state}
-        widthLimits={paneLayout.widthLimits}
-        onPaneWidthChange={paneLayout.setPaneWidth}
-        mobileDocumentsOpen={documentsOpen}
-        mobilePreviewOpen={previewOpen}
-        documents={<DocumentsPane documents={files.pairs} selected={selected} loading={loadingFiles} error={loadError} onSelect={chooseDocument} onRefresh={() => void loadFiles()} onCloseMobile={() => setDocumentsOpen(false)} onGoToIndex={() => setTab('index')}/>} 
-        preview={<PreviewPanel document={selected} open onClose={() => setPreviewOpen(false)}/>} 
-        workspace={<QueryWorkspace document={selected} messages={messages} dispatchMessages={dispatchMessages} onOpenDocuments={() => setDocumentsOpen(true)} onOpenPreview={() => setPreviewOpen(true)}/>} 
-      />}
-      {tab === 'index' && <IndexWorkspace onCompleted={() => void loadFiles()}/>} 
+      <div className="tab-panel" hidden={tab !== 'query'}>
+        <QueryPaneLayout
+          state={paneLayout.state}
+          widthLimits={paneLayout.widthLimits}
+          onPaneWidthChange={paneLayout.setPaneWidth}
+          mobileDocumentsOpen={documentsOpen}
+          mobilePreviewOpen={previewOpen}
+          documents={<DocumentsPane documents={files.pairs} selected={selected} loading={loadingFiles} error={loadError} onSelect={chooseDocument} onRefresh={() => void loadFiles()} onCloseMobile={() => setDocumentsOpen(false)} onGoToIndex={() => setTab('index')}/>}
+          preview={<PreviewPanel document={selected} open onClose={() => setPreviewOpen(false)}/>}
+          workspace={<QueryWorkspace document={selected} messages={messages} dispatchMessages={dispatchMessages} onOpenDocuments={() => setDocumentsOpen(true)} onOpenPreview={() => setPreviewOpen(true)}/>}
+        />
+      </div>
+      <div className="tab-panel" hidden={tab !== 'index'}>
+        <IndexWorkspace onCompleted={() => void loadFiles()}/>
+      </div>
     </div>
 
     {tab === 'query' && <button className="drawer-trigger" onClick={() => setDocumentsOpen(true)} aria-label="開啟文件列表"><Menu size={18}/></button>}
