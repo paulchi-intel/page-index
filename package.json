@@ -1,0 +1,57 @@
+{
+  "name": "pageindex-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local desktop application for indexing documents and querying them with AI-powered structured retrieval.",
+  "author": "paulchi-intel",
+  "license": "MIT",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "test": "node --test electron/*.test.cjs",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:build": "node electron/scripts/build-backend.cjs",
+    "desktop:dev": "node electron/scripts/run-desktop.cjs --dev",
+    "electron:dev": "concurrently --kill-others-on-fail npm:frontend:dev npm:desktop:dev",
+    "electron:package": "electron-builder --win portable --x64",
+    "electron:build": "npm run frontend:build && npm run backend:build && npm run electron:package",
+    "electron:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File electron/scripts/smoke-test.ps1"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.5",
+    "electron": "44.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.paulchi.pageindex",
+    "productName": "PageIndex",
+    "asar": true,
+    "compression": "maximum",
+    "directories": {
+      "output": "release-electron"
+    },
+    "files": [
+      "electron/**/*.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-electron/pageindex-backend",
+        "to": "pageindex-backend"
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "PageIndex.exe"
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    }
+  }
+}

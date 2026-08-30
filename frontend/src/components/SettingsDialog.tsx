@@ -28,7 +28,7 @@ export function SettingsDialog({ open, onClose, onSaved }: { open: boolean; onCl
       setVerification(null);
       setVerificationItems([]);
       setVerificationPhase('idle');
-      api.config().then((loaded) => setConfig({ ...loaded, api_key: '' })).catch((reason: Error) => setError(reason.message));
+      api.config().then(setConfig).catch((reason: Error) => setError(reason.message));
       void loadModels();
     } else ref.current?.close();
   }, [loadModels, open]);
@@ -80,7 +80,7 @@ export function SettingsDialog({ open, onClose, onSaved }: { open: boolean; onCl
   return <dialog ref={ref} className="settings-dialog" onClose={onClose} onCancel={(event) => { event.preventDefault(); onClose(); }}>
     <header><div><span className="eyebrow">PAGEINDEX SETTINGS</span><h2>模型與存取設定</h2></div><button className="icon-button" onClick={onClose} aria-label="關閉設定"><X size={18}/></button></header>
     <div className="dialog-body">
-      <label>API Key<div className="input-with-button"><input autoFocus type={visible ? 'text' : 'password'} value={config.api_key} placeholder={config.api_key_set ? '已儲存，無需重新輸入' : '輸入 GNAI API key'} onChange={(event) => setConfig({ ...config, api_key: event.target.value })}/><button onClick={() => setVisible((value) => !value)} aria-label={visible ? '隱藏 API key' : '顯示 API key'}>{visible ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div></label>
+      <label>API Key<div className="input-with-button"><input autoFocus type={visible ? 'text' : 'password'} value={config.api_key} onChange={(event) => setConfig({ ...config, api_key: event.target.value })}/><button onClick={() => setVisible((value) => !value)} aria-label={visible ? '隱藏 API key' : '顯示 API key'}>{visible ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div></label>
       <div className="label-row"><span>模型</span><div className="model-actions"><a className="model-source-link" href="https://gnai.intel.com/meta?section=models" target="_blank" rel="noopener noreferrer">模型來源文件 ↗</a><button className="text-button verify-models-button" disabled={(!config.api_key.trim() && !config.api_key_set) || loadingModels || verifyingModels} onClick={() => void verifySupportedModels()}><SearchCheck className={verifyingModels ? 'pulse' : ''} size={14}/>{verifyingModels ? '驗證模型中…' : '驗證支援模型…'}</button></div></div>
       <label>查詢模型<select value={config.model} onChange={(event) => setConfig({ ...config, model: event.target.value })}>{selectableModels.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></label>
       <label>索引模型<select value={config.index_model} onChange={(event) => setConfig({ ...config, index_model: event.target.value })}>{selectableModels.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></label>

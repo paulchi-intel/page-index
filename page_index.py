@@ -1,18 +1,16 @@
 """
 page_index.py — PageIndex local application
 
-Starts the PageIndex API and serves the production React view on
-http://localhost:7788. The Vite source lives in frontend/; its dist/ output is
-included in the PyInstaller package.
+Starts the PageIndex API and serves the production React view. The Vite source
+lives in frontend/; its dist/ output is included in the private Python backend
+used by the Electron desktop application.
 
 Run directly:
     python page_index.py
 
-Build as exe:
-    pip install pyinstaller
-    pyinstaller page_index.spec --clean --workpath build/page-index
-
-Distribute the dist/page-index/ folder.
+Environment overrides used by Electron:
+    PAGEINDEX_HOME, PAGEINDEX_HOST, PAGEINDEX_PORT, PAGEINDEX_OPEN_BROWSER,
+    PAGEINDEX_DEV_ORIGIN
 """
 
 from __future__ import annotations
@@ -30,6 +28,8 @@ from typing import Generator, AsyncGenerator
 
 # Must be set before any litellm import
 os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
+
+import litellm
 
 # ── PyInstaller frozen-exe setup (mirrors batch_index.py) ────────────────────
 if getattr(sys, "frozen", False):
@@ -88,17 +88,24 @@ except Exception as _ssl_err:
     print(f"[PageIndex] WARNING: SSL cert setup failed: {_ssl_err}")
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-if getattr(sys, "frozen", False):
+if os.environ.get("PAGEINDEX_HOME"):
+    HOME = Path(os.environ["PAGEINDEX_HOME"]).expanduser().resolve()
+elif getattr(sys, "frozen", False):
     HOME = Path(sys.executable).parent
 else:
     HOME = Path(__file__).resolve().parent
 
 CONFIG_PATH = HOME / "config.json"
-DOCS_DIR    = HOME / "documents"
+DOCS_DIR    = Path(os.environ.get("PAGEINDEX_DOCUMENTS_DIR", HOME / "documents")).expanduser().resolve()
 VIEW_DIR    = (Path(sys._MEIPASS) if getattr(sys, "frozen", False) else HOME) / "frontend" / "dist"
 
-HOST = "127.0.0.1"
-PORT = 7788
+HOST = os.environ.get("PAGEINDEX_HOST", "127.0.0.1")
+try:
+    PORT = int(os.environ.get("PAGEINDEX_PORT", "7788"))
+except ValueError:
+    raise RuntimeError("PAGEINDEX_PORT must be an integer") from None
+OPEN_BROWSER = os.environ.get("PAGEINDEX_OPEN_BROWSER", "1").lower() not in {"0", "false", "no"}
+DEV_ORIGIN = os.environ.get("PAGEINDEX_DEV_ORIGIN", "").rstrip("/")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DEFAULTS = {
@@ -199,13 +206,11 @@ def get_pdf_pages(pdf_path: str, start_page: int, end_page: int) -> str:
 
 
 def llm_completion(model: str, messages: list, stream: bool = False):
-    import litellm
     for attempt in range(5):
         try:
             return litellm.completion(
                 model=model,
                 messages=messages,
-                temperature=0,
                 stream=stream,
             )
         except Exception as e:
@@ -316,18 +321,24 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="PageIndex Query Server", lifespan=lifespan)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if DEV_ORIGIN:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[DEV_ORIGIN],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 if (VIEW_DIR / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=VIEW_DIR / "assets"), name="view-assets")
 
 
 # ── API: list available document pairs ───────────────────────────────────────
+@app.get("/api/health")
+def api_health():
+    return {"status": "ok", "service": "pageindex-backend"}
+
+
 @app.get("/api/files")
 def api_list_files():
     pairs = []
@@ -472,7 +483,7 @@ class VerifyModelsRequest(BaseModel):
 @app.get("/api/config")
 def api_get_config():
     return {
-        "api_key":     "",
+        "api_key":     _cfg.get("api_key", ""),
         "api_key_set": bool(_cfg.get("api_key")),
         "model":       _model or _cfg.get("model", ""),
         "index_model": _index_model or _cfg.get("index_model", ""),
@@ -674,6 +685,10 @@ def _generate_index(req: IndexRequest):
                 yield _sse("error", message=data)
         except queue.Empty:
             yield _sse("error", message="索引任務意外結束，未產生結果。")
+
+    except Exception as exc:
+        logging.exception("Index setup failed")
+        yield _sse("error", message=str(exc))
 
     finally:
         _index_lock.release()
@@ -966,12 +981,14 @@ def main():
     print(f"\n[PageIndex] Starting on http://{HOST}:{PORT}")
     print(f"[PageIndex] Home: {HOME}\n")
 
-    # Open browser after a short delay
-    import threading
-    def _open():
-        time.sleep(1.2)
-        webbrowser.open(f"http://{HOST}:{PORT}")
-    threading.Thread(target=_open, daemon=True).start()
+    if OPEN_BROWSER:
+        import threading
+
+        def _open():
+            time.sleep(1.2)
+            webbrowser.open(f"http://{HOST}:{PORT}")
+
+        threading.Thread(target=_open, daemon=True).start()
 
     uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
 

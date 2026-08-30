@@ -16,3 +16,10 @@ The importable application entry point is now `page_index.py`. Its PyInstaller
 spec is `page_index.spec`, while the user-facing Windows executable and onedir
 distribution retain the product-style name `page-index`. The historical
 `query_server.py` entry point is not retained as a compatibility shim.
+
+## Desktop packaging amendment (2026-08-28)
+
+ADR-0002 supersedes the user-facing PyInstaller distribution described above.
+`page_index.spec` is now `pageindex_backend.spec` and builds a private
+`pageindex-backend.exe` sidecar; only Electron's portable `PageIndex.exe` is a
+user-facing artifact.

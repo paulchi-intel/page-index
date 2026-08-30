@@ -17,9 +17,13 @@ __pycache__/
 # Python/PyInstaller build output
 build/
 dist/
+build-electron/
+dist-electron/
+release-electron/
 *.egg-info/
 
 # Frontend dependencies and generated output
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/

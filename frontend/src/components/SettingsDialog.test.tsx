@@ -29,8 +29,13 @@ describe('SettingsDialog model selectors', () => {
     await waitFor(() => expect(modelsSpy).toHaveBeenCalledOnce());
     const queryModel = await screen.findByLabelText('查詢模型');
     const indexModel = screen.getByLabelText('索引模型');
-    expect(screen.getByLabelText('API Key')).toHaveValue('');
-    expect(screen.getByPlaceholderText('已儲存，無需重新輸入')).toBeInTheDocument();
+    const apiKey = screen.getByLabelText('API Key');
+    expect(apiKey).toHaveValue('<REDACTED>');
+    expect(apiKey).toHaveAttribute('type', 'password');
+    expect(apiKey).not.toHaveAttribute('placeholder');
+    await userEvent.click(screen.getByRole('button', { name: '顯示 API key' }));
+    expect(apiKey).toHaveAttribute('type', 'text');
+    expect(apiKey).toHaveValue('<REDACTED>');
     expect(queryModel.tagName).toBe('SELECT');
     expect(indexModel.tagName).toBe('SELECT');
     expect(screen.getAllByRole('option')).toHaveLength(6);

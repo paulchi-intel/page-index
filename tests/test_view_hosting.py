@@ -3,6 +3,26 @@ from fastapi.testclient import TestClient
 import page_index
 
 
+def test_llm_completion_uses_model_default_temperature(monkeypatch) -> None:
+    calls = []
+    sentinel = object()
+
+    def fake_completion(**kwargs):
+        calls.append(kwargs)
+        return sentinel
+
+    import litellm
+    monkeypatch.setattr(litellm, "completion", fake_completion)
+
+    messages = [{"role": "user", "content": "Hello"}]
+    assert page_index.llm_completion("openai/gpt-5.6-terra", messages) is sentinel
+    assert page_index.llm_completion("openai/gpt-5.6-terra", messages, stream=True) is sentinel
+    assert calls == [
+        {"model": "openai/gpt-5.6-terra", "messages": messages, "stream": False},
+        {"model": "openai/gpt-5.6-terra", "messages": messages, "stream": True},
+    ]
+
+
 def test_react_view_and_assets_are_served() -> None:
     client = TestClient(page_index.app)
 
@@ -17,13 +37,30 @@ def test_react_view_and_assets_are_served() -> None:
     assert response.content
 
 
+def test_health_api_contract() -> None:
+    response = TestClient(page_index.app).get("/api/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "service": "pageindex-backend"}
+
+
+def test_production_api_does_not_allow_arbitrary_browser_origins() -> None:
+    response = TestClient(page_index.app).options(
+        "/api/files",
+        headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_existing_files_api_contract_is_preserved() -> None:
     response = TestClient(page_index.app).get("/api/files")
     assert response.status_code == 200
     assert set(response.json()) == {"pairs", "model", "index_model", "api_key_set"}
 
 
-def test_config_does_not_return_saved_key_and_blank_update_preserves_it(tmp_path, monkeypatch) -> None:
+def test_config_returns_saved_key_and_blank_update_preserves_it(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(page_index, "_cfg", {
         "api_key": "<REDACTED>", "model": "anthropic/model-a", "index_model": "anthropic/model-b",
     })
@@ -34,7 +71,7 @@ def test_config_does_not_return_saved_key_and_blank_update_preserves_it(tmp_path
     client = TestClient(page_index.app)
 
     loaded = client.get("/api/config").json()
-    assert loaded["api_key"] == ""
+    assert loaded["api_key"] == "<REDACTED>"
     assert loaded["api_key_set"] is True
 
     response = client.post("/api/config", json={

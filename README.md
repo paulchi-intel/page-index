@@ -6,12 +6,12 @@ querying and indexing PDF or Markdown documents. Source documents and generated
 
 ## Development
 
-Install the Python and frontend dependencies:
+Install the Python, frontend, and Electron dependencies:
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-cd frontend
 npm install
+npm --prefix frontend install
 ```
 
 Run the API and Vite development server in separate terminals:
@@ -27,6 +27,13 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. Vite proxies `/api` requests to FastAPI on port
 7788.
+
+To run the complete desktop development environment with Electron managing the
+Python backend and Vite View:
+
+```powershell
+npm run electron:dev
+```
 
 ## Production
 
@@ -49,15 +56,39 @@ unavailable result into the dialog. When verification finishes, both model
 dropdowns contain only models the key can use. The key is only persisted after
 **儲存設定** is selected.
 
-To create the Windows onedir executable:
+## Windows desktop build
+
+Build the React View, private Python backend, and unsigned x64 portable Electron
+application with one command:
 
 ```powershell
-pyinstaller page_index.spec --clean --workpath build/page-index
+npm run electron:build
+npm run electron:smoke
 ```
 
-The spec refuses to package if `frontend/dist/index.html` is missing and bundles
-the complete production View into `dist/page-index/page-index.exe` and its
-runtime directory.
+The final artifact is `release-electron/PageIndex.exe`. It is a single portable
+executable; Electron extracts and manages its private `pageindex-backend.exe`
+sidecar at runtime. The intermediate sidecar lives under `dist-electron/` and is
+not a user-facing application.
+
+The desktop application enforces a single instance, selects a dynamic loopback
+port, waits for `/api/health`, and terminates the sidecar on exit. It never opens
+the PageIndex View in the system browser. External HTTPS documentation links do
+open in the system browser.
+
+The desktop application creates and reads its document library beside the
+executable on first launch:
+
+```text
+release-electron\
+├── PageIndex.exe
+└── documents\
+```
+
+Configuration and logs remain separate from the executable under
+`%APPDATA%\PageIndex\`. Existing development data is not copied automatically.
+To reuse it, close PageIndex and manually copy the contents of the development
+`documents/` directory beside `PageIndex.exe`.
 
 ## Verification
 
@@ -66,6 +97,9 @@ cd frontend
 npm test
 npm run lint
 npm run build
+cd ..
+npm test
+npm run electron:build
 ```
 
 Architecture vocabulary and decisions are recorded in `CONTEXT.md` and
